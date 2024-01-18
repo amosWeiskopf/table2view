@@ -4,18 +4,24 @@ install_table2view() {
     mkdir -p ~/.scripts
     curl -o ~/.scripts/table2view.py https://raw.githubusercontent.com/amosWeiskopf/table2view/main/main.py
     chmod +x ~/.scripts/table2view.py
-    if ! grep -q 'alias table2view=' ~/.bashrc; then
-        echo 'alias table2view="python3 ~/.scripts/table2view.py"' >> ~/.bashrc
-    fi
+
+    # Remove existing alias from .bashrc if it exists
+    sed -i '/alias table2view=/d' ~/.bashrc
+
+    # Add new alias to .bashrc
+    echo 'alias table2view="python3 ~/.scripts/table2view.py"' >> ~/.bashrc
+
+    # Reload .bashrc
     . ~/.bashrc
 }
 
 uninstall_table2view() {
     rm -f ~/.scripts/table2view.py
-    sed -i '/alias table2view/d' ~/.bashrc
+    sed -i '/alias table2view=/d' ~/.bashrc
     echo "table2view has been successfully uninstalled."
 }
 
+# Check for uninstall argument
 if [ "$1" = "uninstall" ]; then
     uninstall_table2view
 else
