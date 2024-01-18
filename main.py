@@ -18,6 +18,10 @@ def apply_regex(df, pattern):
     regex_matches = df.astype(str).apply(lambda row: row.str.contains(pattern))
     return df[regex_matches.any(axis=1)]
 
+df = None
+# init df to None
+df = None
+
 # main logic
 file = sys.argv[1]
 ext = file.split('.')[-1]
@@ -67,10 +71,9 @@ else:
         df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
     elif ext == 'tsv':
         df = pd.read_csv(file, sep='\t', nrows=nrows)
-    else:
-        df = None
 
 if df is not None:
+    # Now all operations on df are within this block
     # apply sorting if needed
     if sort_col is not None:
         ascending = True if sort_order == 'a' else False
