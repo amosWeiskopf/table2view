@@ -77,6 +77,36 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 License
 
 
+## Roadmap for `table2view`
+
+### Immediate enhancements
+- **Test & optimize data loading** for large files.
+- **Refine CLI** for more intuitive user commands.
+
+### Near-term goals
+- **Implement data plotting** via the terminal
+- **Support Additional Formats** like JSON, XML, Parquet files.
+- **Advanced Data Operations** like group-by, join, and pivot functionalities.
+
+### Mid-term objectives
+- **Develop Interactive Mode** to allow users to manipulate and view data in an interactive shell.
+- **Plugin Framework** system for users to add custom commands or functionalities.
+
+### Long-term vision
+- **Graphical User Interface**
+- **Machine Learning integration** for simple ML tasks (e.g., linear regression, clustering).
+- **Cloud functionality** for cloud-based data processing and storage.
+
+### Continuous improvement
+- **User feedback loop**: I want to regularly update the tool based on user reviews and suggestions. Please send me your ideas, or feel free to contribute to the codebase.
+- **Regular Security Audits**
+
+## Aspirational goal
+- **Standardization**: Position `table2view` as a go-to tool in data analysis and manipulation communities.
+
+_Note: This roadmap is adaptive and will evolve based on technological advancements and community feedback._
+
+
 ## Author
 Amos Weiskopf (amosWeiskopf on GitHub)
 
