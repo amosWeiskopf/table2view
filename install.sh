@@ -7,7 +7,7 @@ install_table2view() {
     if ! grep -q 'alias table2view=' ~/.bashrc; then
         echo 'alias table2view="python3 ~/.scripts/table2view.py"' >> ~/.bashrc
     fi
-    source ~/.bashrc
+    . ~/.bashrc
 }
 
 uninstall_table2view() {
