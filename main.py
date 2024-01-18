@@ -1,81 +1,121 @@
-import sys
-import os
+import sys, os, random
 import pandas as pd
+import re
+from colorama import Fore, Style
 
-def read_csv_in_chunks(filepath, chunksize=10000, max_rows=100000):
-    """Reads a large CSV file in chunks to avoid memory issues."""
-    chunk_container = pd.read_csv(filepath, chunksize=chunksize)
+
+def read_file_in_chunks(file, chunksize=10000):
+    # function to read large files in chunks
     chunks = []
-    for number, chunk in enumerate(chunk_container):
-        if number * chunksize < max_rows:
-            chunks.append(chunk)
-        else:
+    for chunk in pd.read_csv(file, chunksize=chunksize):
+        chunks.append(chunk)
+        if len(chunks) * chunksize >= 100000:  # limit to 100,000 rows
             break
-    return pd.concat(chunks, ignore_index=True)
+    return pd.concat(chunks)
 
-def read_file(filepath, file_ext, nrows=10, sheet=0):
-    """Reads file based on file extension."""
-    if file_ext == 'csv':
-        return pd.read_csv(filepath, nrows=nrows)
-    elif file_ext in ['xlsx', 'xls']:
-        return pd.read_excel(filepath, sheet_name=sheet, nrows=nrows)
-    elif file_ext == 'tsv':
-        return pd.read_csv(filepath, sep='\t', nrows=nrows)
-    return None
+def apply_regex(df, pattern):
+    # function to filter rows based on regex pattern and colorize matches
+    regex_matches = df.astype(str).apply(lambda row: row.str.contains(pattern))
+    return df[regex_matches.any(axis=1)]
 
-def apply_filters(df, args):
-    """Applies various filters and operations to the dataframe."""
-    if 'sort_col' in args:
-        df.sort_values(df.columns[args['sort_col']], ascending=args.get('sort_order', 'a') == 'a', inplace=True)
-    if 'pattern' in args and args['pattern']:
-        pattern = args['pattern']
-        df = df[df.astype(str).apply(lambda row: row.str.contains(pattern)).any(axis=1)]
-    if 'random_sample' in args and args['random_sample']:
-        df = df.sample(n=args.get('nrows', 10))
-    return df
+# main logic
+file = sys.argv[1]
+ext = file.split('.')[-1]
+nrows, sheet, pattern = 10, 0, None
+head, tail, desc, corr, count, sort_col, sort_order, to_csv, to_tsv, to_excel, random_sample = False, False, False, False, False, None, None, False, False, False, False
 
-def output_data(df, filepath, args):
-    """Outputs data to various formats based on arguments."""
-    base_filename = os.path.splitext(filepath)[0]
-    if args.get('to_csv'):
-        df.to_csv(f'{base_filename}.csv', index=False)
-    if args.get('to_tsv'):
-        df.to_csv(f'{base_filename}.tsv', sep='\t', index=False)
-    if args.get('to_excel'):
-        df.to_excel(f'{base_filename}.xlsx', index=False)
+# parsing command line arguments
+for i in range(2, len(sys.argv), 2):
+    arg, val = sys.argv[i], sys.argv[i+1] if i+1 < len(sys.argv) else ''
+    if arg == '--rows': nrows = int(val)
+    elif arg == '--sheet': sheet = int(val)
+    elif arg == '--regex': pattern = val
+    elif arg == '--head': head = True
+    elif arg == '--tail': tail = True
+    elif arg == '--random': random_sample = True
+    elif arg == '--toCsv': to_csv = True
+    elif arg == '--toExcel': to_excel = True
+    elif arg == '--toTsv': to_tsv = True
+    elif arg == '--desc': desc = True
+    elif arg == '--corr': corr = True
+    elif arg == '--count': count = True
+    elif arg.startswith('--sort'):
+        sort_col = int(arg[6])  # get column index
+        sort_order = arg[7]     # get sort order ('a' or 'd')
+    # ... other arguments ...
 
-def main():
-    args = { '--rows': int, '--sheet': int, '--regex': str, '--sort_col': int, '--sort_order': str, 
-             '--toCsv': bool, '--toTsv': bool, '--toExcel': bool, '--random': bool }
-    parsed_args = {}
+# apply sorting if needed
+if sort_col is not None:
+    ascending = True if sort_order == 'a' else False
+    df = df.sort_values(df.columns[sort_col], ascending=ascending)
 
-    for i in range(2, len(sys.argv), 2):
-        arg, val = sys.argv[i], sys.argv[i+1] if i+1 < len(sys.argv) else None
-        if arg in args:
-            parsed_args[arg[2:]] = args[arg](val) if val is not None else True
+# display statistical summaries if requested
+if desc: print(df.describe())
+elif corr: print(df.corr())
+elif count: print(df.nunique())
 
-    filepath = sys.argv[1]
-    file_ext = filepath.split('.')[-1]
-    file_size = os.path.getsize(filepath) / (1024 * 1024)  # File size in MB
 
-    df = read_csv_in_chunks(filepath) if file_size > 10 else read_file(filepath, file_ext, **parsed_args)
-    
-    if df is not None:
-        df = apply_filters(df, parsed_args)
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.max_rows', parsed_args.get('nrows', 10))
-        pd.set_option('display.width', None)
+file_size = os.path.getsize(file) / (1024 * 1024)  # file size in mb
 
-        if 'head' in parsed_args: print(df.head(parsed_args['nrows']))
-        elif 'tail' in parsed_args: print(df.tail(parsed_args['nrows']))
-        elif 'desc' in parsed_args: print(df.describe())
-        elif 'corr' in parsed_args: print(df.corr())
-        elif 'count' in parsed_args: print(df.nunique())
-        else: print(df)
-
-        output_data(df, filepath, parsed_args)
+# reading file based on extension and size
+if file_size > 10:  # large file
+    df = read_file_in_chunks(file)
+else:
+    if ext == 'csv':
+        df = pd.read_csv(file, nrows=nrows)
+    elif ext in ['xlsx', 'xls']:
+        df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
+    elif ext == 'tsv':
+        df = pd.read_csv(file, sep='\t', nrows=nrows)
     else:
-        print("Error: Data could not be loaded. Please check the file format and path.")
+        df = None
 
-if __name__ == "__main__":
-    main()
+if df is not None:
+    # apply sorting if needed
+    if sort_col is not None:
+        ascending = True if sort_order == 'a' else False
+        df = df.sort_values(df.columns[sort_col], ascending=ascending)
+
+    # apply regex if needed
+    if pattern:
+        df = apply_regex(df, pattern)
+
+    # random sampling
+    if random_sample:
+        df = df.sample(n=nrows) if len(df) > nrows else df
+
+    # adjust display settings
+    pd.set_option('display.max_columns', None)  # display all columns
+    pd.set_option('display.max_rows', nrows)    # display specified number of rows
+    pd.set_option('display.width', None)        # automatically adjust display width
+
+    # display head, tail, or stats
+    if head: print(df.head(nrows))
+    elif tail: print(df.tail(nrows))
+    elif desc: print(df.describe())
+    elif corr: print(df.corr())
+    elif count: print(df.nunique())
+    else: print(df)
+
+    # file conversion using the processed dataframe
+    output_filename = file.split('.')[0]
+    if to_csv: df.to_csv(output_filename + '.csv', index=False)
+    elif to_tsv: df.to_csv(output_filename + '.tsv', sep='\t', index=False)
+    elif to_excel: df.to_excel(output_filename + '.xlsx', index=False)
+else:
+    print("Error: Data could not be loaded. Please check the file format and path.")
+
+# adjust display settings if needed
+pd.set_option('display.max_columns', None)  # display all columns
+pd.set_option('display.max_rows', nrows)    # display specified number of rows
+
+# display head, tail, or stats
+if head: print(df.head(nrows))
+elif tail: print(df.tail(nrows))
+else: print(df)
+
+# file conversion using the processed dataframe
+output_filename = file.split('.')[0]
+if to_csv: df.to_csv(output_filename + '.csv', index=False)
+elif to_tsv: df.to_csv(output_filename + '.tsv', sep='\t', index=False)
+elif to_excel: df.to_excel(output_filename + '.xlsx', index=False)
