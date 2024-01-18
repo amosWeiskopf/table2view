@@ -28,6 +28,9 @@ ext = file.split('.')[-1]
 nrows, sheet, pattern = 10, 0, None
 head, tail, desc, corr, count, sort_col, sort_order, to_csv, to_tsv, to_excel, random_sample = False, False, False, False, False, None, None, False, False, False, False
 
+# Initialize sort_col and sort_order
+sort_col, sort_order = None, None
+
 # parsing command line arguments
 for i in range(2, len(sys.argv), 2):
     arg, val = sys.argv[i], sys.argv[i+1] if i+1 < len(sys.argv) else ''
@@ -46,12 +49,26 @@ for i in range(2, len(sys.argv), 2):
     elif arg.startswith('--sort'):
         sort_col = int(arg[6])  # get column index
         sort_order = arg[7]     # get sort order ('a' or 'd')
+
+    if arg.startswith('--sort'):
+        # Extract column index and sort order
+        match = re.match(r'--sort(\d+)([ad])', arg)
+        if match:
+            sort_col = int(match.group(1))
+            sort_order = match.group(2)
+        else:
+            print("Invalid format for sort argument. Use --sort[column_index][a/d].")
+            sys.exit(1)
     # ... other arguments ...
 
 # apply sorting if needed
-if sort_col is not None:
-    ascending = True if sort_order == 'a' else False
-    df = df.sort_values(df.columns[sort_col], ascending=ascending)
+if df is not None and sort_col is not None:
+    ascending = sort_order == 'a'
+    try:
+        df = df.sort_values(df.columns[sort_col], ascending=ascending)
+    except IndexError:
+        print(f"Invalid column index for sorting: {sort_col}")
+        sys.exit(1)
 
 # display statistical summaries if requested
 if desc: print(df.describe())
