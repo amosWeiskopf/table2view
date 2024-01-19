@@ -44,14 +44,14 @@ Options
  - --regex [pattern]: Apply a regex pattern to filter rows.
  - --head: Display the first few rows of the file.
  - --tail: Display the last few rows of the file.
- - --random: Randomly sample data from the file.
+ - --random: Randomly sample data from the file. **Currently buggy**.
  - --toCsv: Convert the file to CSV format.
  - --toExcel: Convert the file to Excel format.
  - --toTsv: Convert the file to TSV format.
- - --desc: Display statistical summaries.
- - --corr: Display correlation matrix.
- - --count: Display count of unique values.
- - --sort [column_index][a/d]: Sort by the specified column. 'a' for ascending, 'd' for descending.
+ - --desc: Display statistical summaries. **Currently buggy**.
+ - --corr: Display correlation matrix. **Currently buggy**.
+ - --count: Display count of unique values. **Currently buggy**.
+ - --sort [column_index][a/d]: Sort by the specified column. 'a' for ascending, 'd' for descending. **Currently buggy**.
 
 Examples
 
