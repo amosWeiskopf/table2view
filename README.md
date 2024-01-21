@@ -12,11 +12,12 @@ Features
 
 ## Why table2view?
 
-- **Effortless Installation**
-- **User-Friendly**: Designed with simplicity in mind.
-- **Versatile**: Crafted to work with CSV, TSV and Excel files
-- **Powerful**: Converts, filters, sorts, slices, and dices your data with ease.
-- **Lightweight**: No heavy dependencies, just pure efficiency.
+table2view brings the power of popular pandas commands (and soon numpy commands, too) direclty into your CLI, with simple & short syntax. 
+It's **versatile** enough to work with CSV, TSV and Excel files, it's **powerful** (converts, filters, sorts, slices, and dices data), it's **Ultra Lightweight**, and it is designed with simplicity in mind.
+Installation is effortless
+
+## Requirements:
+Debain/Ubuntu with Python 3. 
 
 ## Installation
 
