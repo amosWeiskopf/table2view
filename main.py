@@ -1,10 +1,11 @@
 import sys
 import os
 import pandas as pd
+from tqdm import tqdm
 
 def read_file_in_chunks(file, chunksize=10000):
     chunks = []
-    for chunk in pd.read_csv(file, chunksize=chunksize):
+    for chunk in tqdm(pd.read_csv(file, chunksize=chunksize), desc="Reading file in chunks"):
         chunks.append(chunk)
         if len(chunks) * chunksize >= 100000:
             break
@@ -13,6 +14,22 @@ def read_file_in_chunks(file, chunksize=10000):
 def apply_regex(df, pattern):
     regex_matches = df.astype(str).apply(lambda row: row.str.contains(pattern, na=False))
     return df[regex_matches.any(axis=1)]
+
+def print_status_bar(df):
+    num_rows, num_cols = df.shape
+    num_missing = df.isnull().sum().sum()
+    memory_usage = df.memory_usage(deep=True).sum() / (1024 * 1024)  # in MB
+
+    status_info = (
+        f"Rows: {num_rows}\n"
+        f"Columns: {num_cols}\n"
+        f"Missing Values: {num_missing}\n"
+        f"Memory Usage: {memory_usage:.2f} MB\n"
+    )
+
+    print("\n--- Status Bar ---")
+    print(status_info)
+    print("------------------\n")
 
 def main():
     if len(sys.argv) < 2:
@@ -92,6 +109,9 @@ def main():
             if to_csv: df.to_csv(output_filename + '.csv', index=False)
             elif to_tsv: df.to_csv(output_filename + '.tsv', sep='\t', index=False)
             elif to_excel: df.to_excel(output_filename + '.xlsx', index=False)
+
+            # Print status bar
+            print_status_bar(df)
 
     except Exception as e:
         print(f"Error: {e}")
