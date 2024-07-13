@@ -17,7 +17,8 @@ def detect_encoding(file):
     str: The detected encoding.
     """
     with open(file, 'rb') as f:
-        result = chardet.detect(f.read(100000))
+        rawdata = f.read(100000)
+    result = chardet.detect(rawdata)
     return result['encoding']
 
 def read_file_in_chunks(file, chunksize=10000, max_rows=100000, encoding='utf-8'):
@@ -35,12 +36,41 @@ def read_file_in_chunks(file, chunksize=10000, max_rows=100000, encoding='utf-8'
     """
     chunks = []
     total_rows = 0
-    for chunk in tqdm(pd.read_csv(file, chunksize=chunksize, encoding=encoding), desc="Reading file in chunks"):
+    for chunk in tqdm(pd.read_csv(file, chunksize=chunksize, encoding=encoding, delimiter='\t', header=None), desc="Reading file in chunks"):
         chunks.append(chunk)
         total_rows += len(chunk)
         if total_rows >= max_rows:
             break
     return pd.concat(chunks)
+
+def clean_data(df):
+    """
+    Cleans and preprocesses the DataFrame.
+    
+    Parameters:
+    df (pd.DataFrame): The DataFrame to be cleaned.
+    
+    Returns:
+    pd.DataFrame: The cleaned DataFrame.
+    """
+    # Drop any completely empty rows
+    df.dropna(how='all', inplace=True)
+    
+    # Reset index
+    df.reset_index(drop=True, inplace=True)
+    
+    # Handle malformed rows (e.g., rows with fewer columns)
+    max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
+    df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
+
+    # Set the first non-empty row as header if needed
+    if df.iloc[0].isnull().sum() == 0:
+        df.columns = df.iloc[0]
+        df = df[1:]
+
+    df.reset_index(drop=True, inplace=True)
+    
+    return df
 
 def apply_regex(df, pattern):
     """
@@ -133,18 +163,25 @@ def main():
                 sort_col, sort_order = int(parts[0]), parts[1]
 
         encoding = detect_encoding(file)
+        
+        # Handle BOM (Byte Order Mark) if present
+        if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
+            encoding = 'utf-8-sig'
+
         file_size = os.path.getsize(file) / (1024 * 1024)  # File size in MB
         if file_size > 10:
             df = read_file_in_chunks(file, encoding=encoding)
         else:
             if ext == 'csv':
-                df = pd.read_csv(file, nrows=nrows, encoding=encoding)
+                df = pd.read_csv(file, nrows=nrows, encoding=encoding, delimiter='\t', header=None)
             elif ext in ['xlsx', 'xls']:
                 df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
             elif ext == 'tsv':
                 df = pd.read_csv(file, sep='\t', nrows=nrows, encoding=encoding)
             else:
                 raise ValueError("Unsupported file format.")
+
+        df = clean_data(df)
 
         if sort_col is not None and sort_order in ['a', 'd']:
             ascending = sort_order == 'a'
