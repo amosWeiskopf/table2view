@@ -16,6 +16,8 @@ check_dependencies() {
     if ! python3 -c "import pandas" &> /dev/null; then
         echo "Pandas is not installed. Installing..."
         pip3 install pandas || sudo apt-get install python3-pandas
+        pip3 install chardet || sudo apt-get install python3-chardet
+
     fi
 }
 
