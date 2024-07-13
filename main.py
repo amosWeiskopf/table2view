@@ -52,13 +52,11 @@ def clean_data(df):
     Returns:
     pd.DataFrame: The cleaned DataFrame.
     """
-    # Drop any completely empty rows
     df.dropna(how='all', inplace=True)
     
-    # Reset index
     df.reset_index(drop=True, inplace=True)
     
-    # Handle malformed rows (e.g., rows with fewer columns)
+    # Handle malformed rows (e.g. rows with fewer columns)
     max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
     df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
 
