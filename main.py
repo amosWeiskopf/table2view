@@ -5,6 +5,7 @@ from tqdm import tqdm
 import argparse
 import logging
 import chardet
+import codecs
 
 def detect_encoding(file):
     """
@@ -21,27 +22,21 @@ def detect_encoding(file):
     result = chardet.detect(rawdata)
     return result['encoding']
 
-def read_file_in_chunks(file, chunksize=10000, max_rows=100000, encoding='utf-8'):
+def read_file(file, nrows=None, encoding='utf-8', delimiter='\t'):
     """
-    Reads a file in chunks and concatenates the chunks into a single DataFrame.
+    Reads a file and returns a DataFrame.
     
     Parameters:
     file (str): The path to the file to be read.
-    chunksize (int): The number of rows per chunk.
-    max_rows (int): The maximum number of rows to read.
+    nrows (int): The number of rows to read.
     encoding (str): The file encoding.
+    delimiter (str): The delimiter to use.
     
     Returns:
-    pd.DataFrame: The concatenated DataFrame.
+    pd.DataFrame: The DataFrame.
     """
-    chunks = []
-    total_rows = 0
-    for chunk in tqdm(pd.read_csv(file, chunksize=chunksize, encoding=encoding, delimiter='\t', header=None), desc="Reading file in chunks"):
-        chunks.append(chunk)
-        total_rows += len(chunk)
-        if total_rows >= max_rows:
-            break
-    return pd.concat(chunks)
+    with codecs.open(file, 'rU', encoding) as f:
+        return pd.read_csv(f, nrows=nrows, delimiter=delimiter, header=None)
 
 def clean_data(df):
     """
@@ -168,18 +163,13 @@ def main():
         if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
             encoding = 'utf-8-sig'
 
-        file_size = os.path.getsize(file) / (1024 * 1024)  # File size in MB
-        if file_size > 10:
-            df = read_file_in_chunks(file, encoding=encoding)
+        if ext == 'csv' or ext == 'tsv':
+            delimiter = '\t' if ext == 'tsv' else ','
+            df = read_file(file, nrows=nrows, encoding=encoding, delimiter=delimiter)
+        elif ext in ['xlsx', 'xls']:
+            df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
         else:
-            if ext == 'csv':
-                df = pd.read_csv(file, nrows=nrows, encoding=encoding, delimiter='\t', header=None)
-            elif ext in ['xlsx', 'xls']:
-                df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
-            elif ext == 'tsv':
-                df = pd.read_csv(file, sep='\t', nrows=nrows, encoding=encoding)
-            else:
-                raise ValueError("Unsupported file format.")
+            raise ValueError("Unsupported file format.")
 
         df = clean_data(df)
 
