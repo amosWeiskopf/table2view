@@ -6,6 +6,7 @@ import argparse
 import logging
 import chardet
 import codecs
+# I love Masha
 
 def detect_encoding(file):
     """
