@@ -6,7 +6,7 @@ import argparse
 import logging
 import chardet
 import codecs
-#something stupeed
+
 def detect_encoding(file):
     """
     Detects the encoding of a file.
@@ -22,6 +22,28 @@ def detect_encoding(file):
     result = chardet.detect(rawdata)
     return result['encoding']
 
+def remove_bom(file, encoding):
+    """
+    Removes BOM from the file if present.
+    
+    Parameters:
+    file (str): The path to the file.
+    encoding (str): The detected encoding of the file.
+    
+    Returns:
+    str: The path to the cleaned file.
+    """
+    cleaned_file = file + '.cleaned'
+    with open(file, 'rb') as f:
+        content = f.read()
+    if content[:3] == codecs.BOM_UTF8:
+        content = content[3:]
+    elif content[:2] in [codecs.BOM_UTF16_BE, codecs.BOM_UTF16_LE]:
+        content = content[2:]
+    with open(cleaned_file, 'wb') as f:
+        f.write(content)
+    return cleaned_file
+
 def try_reading_file(file, encodings, delimiter='\t'):
     """
     Tries reading a file with different encodings until it succeeds.
@@ -36,7 +58,8 @@ def try_reading_file(file, encodings, delimiter='\t'):
     """
     for encoding in encodings:
         try:
-            with codecs.open(file, 'r', encoding) as f:
+            cleaned_file = remove_bom(file, encoding)
+            with codecs.open(cleaned_file, 'r', encoding) as f:
                 return pd.read_csv(f, delimiter=delimiter, header=None)
         except Exception as e:
             logging.warning(f"Failed to read with encoding {encoding}: {e}")
@@ -52,11 +75,13 @@ def clean_data(df):
     Returns:
     pd.DataFrame: The cleaned DataFrame.
     """
+    # Drop any completely empty rows
     df.dropna(how='all', inplace=True)
     
+    # Reset index
     df.reset_index(drop=True, inplace=True)
     
-    # Handle malformed rows (e.g. rows with fewer columns)
+    # Handle malformed rows (e.g., rows with fewer columns)
     max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
     df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
 
@@ -165,7 +190,7 @@ def main():
         if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
             encoding = 'utf-8-sig'
 
-        encodings_to_try = [encoding, 'utf-8-sig', 'utf-8', 'latin1']
+        encodings_to_try = [encoding, 'utf-8-sig', 'utf-8', 'latin1', 'ISO-8859-1']
 
         if ext == 'csv' or ext == 'tsv':
             delimiter = '\t' if ext == 'tsv' else ','
