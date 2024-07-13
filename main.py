@@ -6,7 +6,7 @@ import argparse
 import logging
 import chardet
 import codecs
-## interesting thing
+#something stupeed
 def detect_encoding(file):
     """
     Detects the encoding of a file.
@@ -22,21 +22,25 @@ def detect_encoding(file):
     result = chardet.detect(rawdata)
     return result['encoding']
 
-def read_file(file, nrows=None, encoding='utf-8', delimiter='\t'):
+def try_reading_file(file, encodings, delimiter='\t'):
     """
-    Reads a file and returns a DataFrame.
+    Tries reading a file with different encodings until it succeeds.
     
     Parameters:
     file (str): The path to the file to be read.
-    nrows (int): The number of rows to read.
-    encoding (str): The file encoding.
+    encodings (list): A list of encodings to try.
     delimiter (str): The delimiter to use.
     
     Returns:
     pd.DataFrame: The DataFrame.
     """
-    with codecs.open(file, 'rU', encoding) as f:
-        return pd.read_csv(f, nrows=nrows, delimiter=delimiter, header=None)
+    for encoding in encodings:
+        try:
+            with codecs.open(file, 'r', encoding) as f:
+                return pd.read_csv(f, delimiter=delimiter, header=None)
+        except Exception as e:
+            logging.warning(f"Failed to read with encoding {encoding}: {e}")
+    raise ValueError(f"Failed to read the file with provided encodings: {encodings}")
 
 def clean_data(df):
     """
@@ -163,9 +167,11 @@ def main():
         if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
             encoding = 'utf-8-sig'
 
+        encodings_to_try = [encoding, 'utf-8-sig', 'utf-8', 'latin1']
+
         if ext == 'csv' or ext == 'tsv':
             delimiter = '\t' if ext == 'tsv' else ','
-            df = read_file(file, nrows=nrows, encoding=encoding, delimiter=delimiter)
+            df = try_reading_file(file, encodings_to_try, delimiter=delimiter)
         elif ext in ['xlsx', 'xls']:
             df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
         else:
