@@ -27,7 +27,7 @@ install_table2view() {
     mkdir -p ~/.scripts && echo "Directory created."
 
     echo "Downloading table2view.py..."
-    if curl -o ~/.scripts/table2view.py https://raw.githubusercontent.com/amosWeiskopf/table2view/tavla/main.py; then
+    if curl -o ~/.scripts/table2view.py https://raw.githubusercontent.com/amosWeiskopf/table2view/main/main.py; then
         echo "Download successful."
     else
         echo "Error in downloading file."
