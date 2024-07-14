@@ -6,7 +6,7 @@ import argparse
 import logging
 import chardet
 import codecs
-# כןכן
+
 def detect_encoding(file):
     """
     Detects the encoding of a file.
@@ -44,6 +44,33 @@ def remove_bom(file, encoding):
         f.write(content)
     return cleaned_file
 
+def preprocess_file(file, encoding, delimiter='\t'):
+    """
+    Preprocesses the file to ensure consistent structure.
+    
+    Parameters:
+    file (str): The path to the file to be read.
+    encoding (str): The encoding of the file.
+    delimiter (str): The delimiter to use.
+    
+    Returns:
+    str: The path to the preprocessed file.
+    """
+    preprocessed_file = file + '.preprocessed'
+    with codecs.open(file, 'r', encoding) as f:
+        lines = f.readlines()
+    
+    with codecs.open(preprocessed_file, 'w', encoding) as f:
+        for line in lines:
+            # Replace multiple delimiters with a single delimiter
+            line = line.replace(delimiter*2, delimiter)
+            # Ensure consistent number of columns
+            fields = line.split(delimiter)
+            if len(fields) > 1:
+                f.write(delimiter.join(fields) + '\n')
+    
+    return preprocessed_file
+
 def try_reading_file(file, encodings, delimiter='\t'):
     """
     Tries reading a file with different encodings until it succeeds.
@@ -59,8 +86,9 @@ def try_reading_file(file, encodings, delimiter='\t'):
     for encoding in encodings:
         try:
             cleaned_file = remove_bom(file, encoding)
-            with codecs.open(cleaned_file, 'r', encoding) as f:
-                return pd.read_csv(f, delimiter=delimiter, header=None)
+            preprocessed_file = preprocess_file(cleaned_file, encoding, delimiter)
+            with codecs.open(preprocessed_file, 'r', encoding) as f:
+                return pd.read_csv(f, delimiter=delimiter, header=None, error_bad_lines=False)
         except Exception as e:
             logging.warning(f"Failed to read with encoding {encoding}: {e}")
     raise ValueError(f"Failed to read the file with provided encodings: {encodings}")
@@ -75,17 +103,13 @@ def clean_data(df):
     Returns:
     pd.DataFrame: The cleaned DataFrame.
     """
-    # Drop any completely empty rows
     df.dropna(how='all', inplace=True)
     
-    # Reset index
     df.reset_index(drop=True, inplace=True)
     
-    # Handle malformed rows (e.g., rows with fewer columns)
     max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
     df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
 
-    # Set the first non-empty row as header if needed
     if df.iloc[0].isnull().sum() == 0:
         df.columns = df.iloc[0]
         df = df[1:]
@@ -227,8 +251,6 @@ def main():
         if to_csv: df.to_csv(output_filename + '.csv', index=False)
         elif to_tsv: df.to_csv(output_filename + '.tsv', sep='\t', index=False)
         elif to_excel: df.to_excel(output_filename + '.xlsx', index=False)
-
-        # Print status bar
         print_status_bar(df)
 
     except Exception as e:
