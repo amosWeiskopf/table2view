@@ -109,7 +109,7 @@ def clean_data(df):
         max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
         df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
 
-                if df.iloc[0].isnull().sum() == 0:
+                if df.shape[0] > 0 and df.iloc[0].isnull().sum() == 0:
             df.columns = df.iloc[0]
             df = df[1:]
 
@@ -140,8 +140,7 @@ def print_status_bar(df):
     """
     num_rows, num_cols = df.shape
     num_missing = df.isnull().sum().sum()
-    memory_usage = df.memory_usage(deep=True).sum() / (1024 * 1024)  # in MB
-
+    memory_usage = df.memory_usage(deep=True).sum() / (1024 * 1024)  
     status_info = (
         f"Rows: {num_rows}\n"
         f"Columns: {num_cols}\n"
@@ -227,6 +226,10 @@ def main():
             return
 
         df = clean_data(df)
+
+        if df.empty:
+            logging.error("DataFrame is empty after cleaning the data.")
+            return
 
         if sort_col is not None and sort_order in ['a', 'd']:
             ascending = sort_order == 'a'
