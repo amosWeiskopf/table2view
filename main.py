@@ -6,7 +6,7 @@ import argparse
 import logging
 import chardet
 import codecs
-
+# 13:55
 def detect_encoding(file):
     """
     Detects the encoding of a file.
