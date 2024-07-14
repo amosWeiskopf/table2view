@@ -6,14 +6,14 @@ import argparse
 import logging
 import chardet
 import codecs
-# 13:55
+
 def detect_encoding(file):
     """
     Detects the encoding of a file.
-    
+
     Parameters:
     file (str): The path to the file to be analyzed.
-    
+
     Returns:
     str: The detected encoding.
     """
@@ -25,11 +25,11 @@ def detect_encoding(file):
 def remove_bom(file, encoding):
     """
     Removes BOM from the file if present.
-    
+
     Parameters:
     file (str): The path to the file.
     encoding (str): The detected encoding of the file.
-    
+
     Returns:
     str: The path to the cleaned file.
     """
@@ -47,37 +47,37 @@ def remove_bom(file, encoding):
 def preprocess_file(file, encoding, delimiter='\t'):
     """
     Preprocesses the file to ensure consistent structure.
-    
+
     Parameters:
     file (str): The path to the file to be read.
     encoding (str): The encoding of the file.
     delimiter (str): The delimiter to use.
-    
+
     Returns:
     str: The path to the preprocessed file.
     """
     preprocessed_file = file + '.preprocessed'
     with codecs.open(file, 'r', encoding) as f:
         lines = f.readlines()
-    
+
     with codecs.open(preprocessed_file, 'w', encoding) as f:
         for line in lines:
                         line = line.replace(delimiter*2, delimiter)
                         fields = line.split(delimiter)
             if len(fields) > 1:
                 f.write(delimiter.join(fields) + '\n')
-    
+
     return preprocessed_file
 
 def try_reading_file(file, encodings, delimiter='\t'):
     """
     Tries reading a file with different encodings until it succeeds.
-    
+
     Parameters:
     file (str): The path to the file to be read.
     encodings (list): A list of encodings to try.
     delimiter (str): The delimiter to use.
-    
+
     Returns:
     pd.DataFrame: The DataFrame.
     """
@@ -94,17 +94,17 @@ def try_reading_file(file, encodings, delimiter='\t'):
 def clean_data(df):
     """
     Cleans and preprocesses the DataFrame.
-    
+
     Parameters:
     df (pd.DataFrame): The DataFrame to be cleaned.
-    
+
     Returns:
     pd.DataFrame: The cleaned DataFrame.
     """
         df.dropna(how='all', inplace=True)
-    
+
         df.reset_index(drop=True, inplace=True)
-    
+
         if not df.empty:
         max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
         df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
@@ -114,17 +114,17 @@ def clean_data(df):
             df = df[1:]
 
         df.reset_index(drop=True, inplace=True)
-    
+
     return df
 
 def apply_regex(df, pattern):
     """
     Applies a regex pattern to the DataFrame and filters rows containing the pattern.
-    
+
     Parameters:
     df (pd.DataFrame): The DataFrame to be filtered.
     pattern (str): The regex pattern to apply.
-    
+
     Returns:
     pd.DataFrame: The filtered DataFrame.
     """
@@ -134,7 +134,7 @@ def apply_regex(df, pattern):
 def print_status_bar(df):
     """
     Prints a status bar with information about the DataFrame.
-    
+
     Parameters:
     df (pd.DataFrame): The DataFrame to display status information for.
     """
@@ -155,7 +155,7 @@ def print_status_bar(df):
 def parse_arguments():
     """
     Parses command-line arguments using argparse.
-    
+
     Returns:
     argparse.Namespace: The parsed arguments.
     """
@@ -174,7 +174,7 @@ def parse_arguments():
     parser.add_argument('--corr', action='store_true', help='Display the correlation matrix.')
     parser.add_argument('--count', action='store_true', help='Display the count of unique values.')
     parser.add_argument('--sort', type=str, help='Sort the DataFrame by a column (format: column,order).')
-    
+
     return parser.parse_args()
 
 def main():
@@ -207,7 +207,7 @@ def main():
                 sort_col, sort_order = int(parts[0]), parts[1]
 
         encoding = detect_encoding(file)
-        
+
                 if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
             encoding = 'utf-8-sig'
 
@@ -264,5 +264,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-print ("fin")
