@@ -62,10 +62,8 @@ def preprocess_file(file, encoding, delimiter='\t'):
     
     with codecs.open(preprocessed_file, 'w', encoding) as f:
         for line in lines:
-            # Replace multiple delimiters with a single delimiter
-            line = line.replace(delimiter*2, delimiter)
-            # Ensure consistent number of columns
-            fields = line.split(delimiter)
+                        line = line.replace(delimiter*2, delimiter)
+                        fields = line.split(delimiter)
             if len(fields) > 1:
                 f.write(delimiter.join(fields) + '\n')
     
@@ -88,7 +86,7 @@ def try_reading_file(file, encodings, delimiter='\t'):
             cleaned_file = remove_bom(file, encoding)
             preprocessed_file = preprocess_file(cleaned_file, encoding, delimiter)
             with codecs.open(preprocessed_file, 'r', encoding) as f:
-                return pd.read_csv(f, delimiter=delimiter, header=None, error_bad_lines=False)
+                return pd.read_csv(f, delimiter=delimiter, header=None, on_bad_lines='skip')
         except Exception as e:
             logging.warning(f"Failed to read with encoding {encoding}: {e}")
     raise ValueError(f"Failed to read the file with provided encodings: {encodings}")
@@ -103,18 +101,19 @@ def clean_data(df):
     Returns:
     pd.DataFrame: The cleaned DataFrame.
     """
-    df.dropna(how='all', inplace=True)
+        df.dropna(how='all', inplace=True)
     
-    df.reset_index(drop=True, inplace=True)
+        df.reset_index(drop=True, inplace=True)
     
-    max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
-    df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
+        if not df.empty:
+        max_columns = df.apply(lambda row: len(row.dropna()), axis=1).max()
+        df = df[df.apply(lambda row: len(row.dropna()), axis=1) == max_columns]
 
-    if df.iloc[0].isnull().sum() == 0:
-        df.columns = df.iloc[0]
-        df = df[1:]
+                if df.iloc[0].isnull().sum() == 0:
+            df.columns = df.iloc[0]
+            df = df[1:]
 
-    df.reset_index(drop=True, inplace=True)
+        df.reset_index(drop=True, inplace=True)
     
     return df
 
@@ -210,8 +209,7 @@ def main():
 
         encoding = detect_encoding(file)
         
-        # Handle BOM (Byte Order Mark) if present
-        if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
+                if encoding.lower().startswith('utf-16') or encoding.lower().startswith('utf-32'):
             encoding = 'utf-8-sig'
 
         encodings_to_try = [encoding, 'utf-8-sig', 'utf-8', 'latin1', 'ISO-8859-1']
@@ -223,6 +221,10 @@ def main():
             df = pd.read_excel(file, sheet_name=sheet, nrows=nrows)
         else:
             raise ValueError("Unsupported file format.")
+
+        if df.empty:
+            logging.error("DataFrame is empty after reading the file.")
+            return
 
         df = clean_data(df)
 
@@ -251,7 +253,8 @@ def main():
         if to_csv: df.to_csv(output_filename + '.csv', index=False)
         elif to_tsv: df.to_csv(output_filename + '.tsv', sep='\t', index=False)
         elif to_excel: df.to_excel(output_filename + '.xlsx', index=False)
-        print_status_bar(df)
+
+                print_status_bar(df)
 
     except Exception as e:
         logging.error(f"Error: {e}")
